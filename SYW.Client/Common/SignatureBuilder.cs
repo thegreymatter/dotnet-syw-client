@@ -2,7 +2,7 @@
 
 namespace Syw.Client.Common
 {
-	internal class SignatureBuilder
+	public class SignatureBuilder
 	{
 		private readonly IHashAlgorithm _hashAlgorithm;
 		private readonly List<byte> _input = new List<byte>();

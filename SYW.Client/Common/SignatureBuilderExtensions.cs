@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Syw.Client.Common
 {
-	internal static class SignatureBuilderExtensions
+	public static class SignatureBuilderExtensions
 	{
 		public static SignatureBuilder Append(this SignatureBuilder builder, long val)
 		{

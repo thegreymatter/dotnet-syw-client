@@ -29,12 +29,12 @@ namespace Syw.Client
 
 		public T Get<T>(string servicePath, object parametersModel = null)
 		{
-			return MakeRequest<T>(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Get);
+			return JsonConvert.DeserializeObject<T>(MakeRequest(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Get));
 		}
 
 		public T Post<T>(string servicePath, object parametersModel = null)
 		{
-			return MakeRequest<T>(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Post);
+			return JsonConvert.DeserializeObject<T>(MakeRequest(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Post));
 		}
 
 		public dynamic Get(string servicePath, object parametersModel = null)
@@ -47,35 +47,30 @@ namespace Syw.Client
 			return MakeRequest(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Post);
 		}
 
-		public T Post<T>(string servicePath, string parametersModel = null)
-		{
-			return Post<T>(GetServiceUrl(servicePath), parametersModel, AddContextParameters);
-		}
-
-		private T MakeRequest<T>(Uri serviceUrl, ICollection<KeyValuePair<string, object>> parameters, Action<NameValueCollection> applyExtraParameters, HttpMethod method)
+		private string MakeRequest(Uri serviceUrl, ICollection<KeyValuePair<string, object>> parameters, Action<NameValueCollection> applyExtraParameters, HttpMethod method)
 		{
 			var webClient = _webClientBuilder.Create();
-			var serviceParameters = new NameValueCollection();
-			var serviceParametersPost = new Dictionary<string, object>();
-
-			applyExtraParameters?.Invoke(serviceParameters);
+			var queryParameters = new NameValueCollection();
+			var bodyParameters = new Dictionary<string, object>();
+			
+			applyExtraParameters?.Invoke(queryParameters);
 			if (parameters != null)
 			{
 				foreach (var parameter in parameters)
 				{
-					if (method == HttpMethod.Post)
-						serviceParametersPost.Add(parameter.Key, parameter.Value);
+					if (method != HttpMethod.Get)
+						bodyParameters.Add(parameter.Key, parameter.Value);
 					else
 					{
 						var value = _parametersTranslator.ToJson(parameter);
-						serviceParameters.Add(parameter.Key, value);
+						queryParameters.Add(parameter.Key, value);
 					}
 				}
 			}
 			try
 			{
-				return (method == HttpMethod.Post) ? JsonConvert.DeserializeObject<T>(webClient.UploadValues(ApplyExtraParametersToUrl(serviceUrl, serviceParameters), "POST", JsonConvert.SerializeObject(serviceParametersPost))) :
-					webClient.GetJson<T>(serviceUrl, serviceParameters);
+				return webClient.Request(ApplyQueryParametersToUrl(serviceUrl, queryParameters), method,
+					JsonConvert.SerializeObject(bodyParameters));
 			}
 			catch (WebException ex)
 			{
@@ -83,53 +78,7 @@ namespace Syw.Client
 			}
 		}
 
-		private dynamic MakeRequest(Uri serviceUrl, ICollection<KeyValuePair<string, object>> parameters, Action<NameValueCollection> applyExtraParameters, HttpMethod method)
-		{
-			var webClient = _webClientBuilder.Create();
-			var serviceParameters = new NameValueCollection();
-			var serviceParametersPost = new Dictionary<string, object>();
-
-			applyExtraParameters?.Invoke(serviceParameters);
-			if (parameters != null)
-			{
-				foreach (var parameter in parameters)
-				{
-					if (method == HttpMethod.Post)
-						serviceParametersPost.Add(parameter.Key, parameter.Value);
-					else
-					{
-						var value = _parametersTranslator.ToJson(parameter);
-						serviceParameters.Add(parameter.Key, value);
-					}
-				}
-			}
-			try
-			{
-				return (method == HttpMethod.Post) ? JsonConvert.DeserializeObject(webClient.UploadValues(ApplyExtraParametersToUrl(serviceUrl, serviceParameters), "POST", JsonConvert.SerializeObject(serviceParametersPost))) :
-					webClient.GetJson(serviceUrl, serviceParameters);
-			}
-			catch (WebException ex)
-			{
-				throw GeneratePlatformRequestException(ex);
-			}
-		}
-
-		private T Post<T>(Uri serviceUrl, string parameters, Action<NameValueCollection> applyExtraParameters)
-		{
-			var webClient = _webClientBuilder.Create();
-			var serviceParameters = new NameValueCollection();
-			applyExtraParameters?.Invoke(serviceParameters);
-			try
-			{
-				var response = webClient.UploadValues(ApplyExtraParametersToUrl(serviceUrl, serviceParameters), "POST", parameters);
-				return JsonConvert.DeserializeObject<T>(response);
-			}
-			catch (WebException ex)
-			{
-				throw GeneratePlatformRequestException(ex);
-			}
-		}
-
+	
 		private Exception GeneratePlatformRequestException(WebException ex)
 		{
 			try
@@ -162,15 +111,14 @@ namespace Syw.Client
 			serviceParameters.Add("hash", _platformTokenProvider.GetHash());
 		}
 
-		private Uri ApplyExtraParametersToUrl(Uri serviceUrl, NameValueCollection serviceParameters)
+		private Uri ApplyQueryParametersToUrl(Uri serviceUrl, NameValueCollection serviceParameters)
 		{
 			var urlWithParameters = serviceUrl.ToString();
 			if (serviceParameters == null) return new Uri(urlWithParameters);
-
 			urlWithParameters += "?";
 			foreach (var parameter in serviceParameters.Keys)
 			{
-				urlWithParameters = string.Format("{0}{1}={2}&", urlWithParameters, parameter, serviceParameters.Get(parameter.ToString()));
+				urlWithParameters = $"{urlWithParameters}{parameter}={serviceParameters.Get(parameter.ToString())}&";
 			}
 			urlWithParameters = urlWithParameters.Remove(urlWithParameters.Length - 1);
 			return new Uri(urlWithParameters);
