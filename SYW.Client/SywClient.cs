@@ -7,8 +7,7 @@ namespace Syw.Client
 {
 	public class SywClient
 	{
-		private PlatformProxy _proxy;
-
+		private readonly PlatformProxy _proxy;
 
 		public SywClient(IPlatformTokenProvider tokenProvider) : this(new WebClientBuilder(), tokenProvider, new PlatformSettings())
 		{
@@ -18,7 +17,6 @@ namespace Syw.Client
 		{
 			_proxy = new PlatformProxy(webClient, new ParametersTranslator(), settings, tokenProvider);
 		}
-
 
 		public T Get<T>(string endpoint, object parametersModel = null)
 		{
@@ -34,7 +32,6 @@ namespace Syw.Client
 		{
 			return new Api(_proxy);
 		}
-
 
 		public class Api : DynamicObject
 		{
@@ -63,6 +60,7 @@ namespace Syw.Client
 
 				if (binder.Name.Equals("Get"))
 				{
+					
 					result = _proxy.Get(url, parameters);
 					return true;
 				}

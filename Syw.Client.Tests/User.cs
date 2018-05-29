@@ -1,5 +1,4 @@
-﻿using System.Net;
-using Syw.Client;
+﻿using Syw.Client;
 
 namespace Syw.Client.Tests
 {

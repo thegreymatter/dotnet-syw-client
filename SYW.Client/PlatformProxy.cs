@@ -39,12 +39,12 @@ namespace Syw.Client
 
 		public dynamic Get(string servicePath, object parametersModel = null)
 		{
-			return MakeRequest(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Get);
+			return JsonConvert.DeserializeObject(MakeRequest(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Get));
 		}
 
 		public dynamic Post(string servicePath, object parametersModel = null)
 		{
-			return MakeRequest(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Post);
+			return JsonConvert.DeserializeObject(MakeRequest(GetServiceUrl(servicePath), parametersModel.GetParameters(), AddContextParameters, HttpMethod.Post));
 		}
 
 		private string MakeRequest(Uri serviceUrl, ICollection<KeyValuePair<string, object>> parameters, Action<NameValueCollection> applyExtraParameters, HttpMethod method)
